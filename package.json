@@ -1,10 +1,11 @@
 {
-  "name": "masonbotjs2",
+  "name": "masonbot",
   "version": "1.0.0",
   "description": "a refactor of masonbot",
   "main": "main.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node main.mjs"
   },
   "author": "Mason Lane",
   "license": "ISC",
@@ -22,5 +23,17 @@
     "mathjs": "^9.4.4",
     "mongodb": "^3.6.10",
     "simple-youtube-api": "^5.2.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mason8592/masonbot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mason8592/masonbot/issues"
+  },
+  "homepage": "https://github.com/mason8592/masonbot#readme",
+  "engines": {
+    "node": "14.15.3"
   }
 }
