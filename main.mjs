@@ -378,4 +378,4 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 client.login()
 
-export { client, prefix, Button, dboUsers, dboChannels }
+export { client, prefix, Button, dboUsers, dboChannels, mostRecentCommand }
