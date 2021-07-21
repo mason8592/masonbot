@@ -47,7 +47,7 @@ Mongo.connect(config.MONGODB_URL, {
 })
 
 // OTHER
-let prefix = "t,"
+let prefix = "m,"
 
 client.on("message", async message => {
     if (Math.floor(Math.random() * 4096) === 1) {

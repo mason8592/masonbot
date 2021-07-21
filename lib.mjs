@@ -231,7 +231,7 @@ export const quoteEmbed = (message, boardObject = false) => {
         embed ?
         new Discord.MessageEmbed({
             color: message.member.displayHexColor,
-            description: embed.description ? `${message.content}\n${embed.description}` : message.content,
+            description: embed.description ? `${message.content}\n${embed.description}` : message.content.replace(imageRegex, "").replace(linkVideoRegex, ""),
             ...embed.fields && {
                 fields: embed.fields
             },
