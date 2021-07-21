@@ -1696,8 +1696,7 @@ export class MessageCommand {
         const { message, args } = this
 
         if (args[1] === "view" || args[1] === "v") {
-            const generatorLevel = parseInt(args[2])
-            if (isNaN(generatorLevel)) return message.channel.send(errorEmbed("Invalid generator level."))
+            const generatorLevel = parseInt(args[2]) || (await getUser(message.author.id)).generatorLevel
 
             return message.channel.send({
                 embed: {
@@ -1833,6 +1832,10 @@ export class MessageCommand {
             case "bribe":
                 response("Bribe", "m,c bribe", "m,c bribe <user> {<command>} <amount>", "Bribes a user to execute a command for a certain amount of money. Command must be wrapped in {curly brackets}.")
                 break
+            case "gen":
+            case "g":
+                response("Generator", "m,c gen; m,c g", "m,c gen <view/v|upgrade/u> <?level| >", "Generators create money over time. You can collect them using m,c ch.\n\nIf you wish to view information about a generator, you can do m,c gen view <level>, or leave <level> blank to default to viewing the next generator. If you want to upgrade, it's m,c gen upgrade.")
+                break
             case "raremasonbot":
                 response("Rare Masonbot", "", "", "Rare Masonbots have a 1/4096 chance of appearing on any non-bot message. Are you feeling lucky?")
                 break
@@ -1881,7 +1884,7 @@ export class MessageCommand {
                             },
                             {
                                 name: "Currency",
-                                value: "\`\`\`top, bet, pay, page, vs, check, bribe\`\`\`",
+                                value: "\`\`\`top, bet, pay, page, vs, check, bribe, gen\`\`\`",
                                 inline: true
                             },
                             {
