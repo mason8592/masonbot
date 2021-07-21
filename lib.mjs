@@ -126,8 +126,8 @@ export const parseMember = (search) => {
     if (!search) return undefined
     const guild = client.guilds.cache.find(guild => guild.id === global.guild.id)
 
-    if (/<@\d+>/.test(search)) {
-        const member = guild.members.cache.find(member => member.user.id === search.match(/\d+/g))
+    if (/(<@|<@!)\d+>/.test(search)) {
+        const member = guild.members.cache.find(member => member.user.id === search.match(/\d+/g)[0])
 
         return member
     } else if (/^\d+$/.test(search)) {
