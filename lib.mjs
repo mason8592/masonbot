@@ -203,7 +203,11 @@ export const operationFormat = (start, amount) => {
 
     const maxLength = formatEnd.length > formatAmount.length ? formatEnd.length : formatAmount.length
 
-    return `\`\`\`  ${" ".repeat(maxLength - formatStart.length)}${formatStart}\n${sign} ${" ".repeat(maxLength - formatAmount.length)}${formatAmount}\n= ${" ".repeat(maxLength - formatEnd.length)}${formatEnd}\`\`\``
+    try {
+        return `\`\`\`  ${" ".repeat(maxLength - formatStart.length)}${formatStart}\n${sign} ${" ".repeat(maxLength - formatAmount.length)}${formatAmount}\n= ${" ".repeat(maxLength - formatEnd.length)}${formatEnd}\`\`\``
+    } catch {
+        return "error"
+    }
 } // Formats an operation as though it were written down back when we were kids in school
 
 export const quoteEmbed = (message, boardObject = false) => {
@@ -479,7 +483,7 @@ export class MessageCommand {
         global.channel.id = message.channel.id
     }
     async eval() {
-        const { message } = this
+        const { message, args } = this
         const code = message.content.split(" ").slice(1).join(" ")
 
         try {
@@ -603,7 +607,7 @@ export class MessageCommand {
             }
         }).then(async () => {
             await changeBalance(message.author.id, -1 * amount)
-            await changeBalance(message.author.id, amount)
+            await changeBalance(target.user.id, amount)
         })
     }
     async quote() {
@@ -1024,10 +1028,10 @@ export class MessageCommand {
         try {
             if (argString.indexOf("|") !== -1 || argString.indexOf("\n") !== -1) {
                 answer = argString.split(/[\n|]/gm).map(equation => {
-                    return math.format(math.evaluate(equation), { precision: 8 })
+                    return math.format(math.evaluate(equation), { precision: 6 })
                 }).join("\n")
             } else {
-                answer = math.evaluate(argString, { precision: 8 })
+                answer = math.evaluate(argString, { precision: 6 })
             }
         } catch (err) {
             return message.channel.send(
@@ -1039,7 +1043,7 @@ export class MessageCommand {
             embed: {
                 title: argString + " =",
                 color: info.masonbot.color,
-                description: answer
+                description: answer.toLocaleString()
             }
         }).catch(e => {
             console.log(e.message)
@@ -1410,6 +1414,8 @@ export class MessageCommand {
     }
     async vs() {
         const { message, args } = this
+        if (!args[2]) return
+
         const target = parseMember(args[1])
         const userCollection = await getUser(message.author.id)
         const amount = parseAmount(args[2], userCollection.currency)
@@ -1424,7 +1430,7 @@ export class MessageCommand {
                 throw "Couldn't find you in the database."
             } else if (userCollection.currency < amount) {
                 throw "You don't have enough currency"
-            } else if (targetCollection.amount < amount) {
+            } else if (targetCollection.currency < amount) {
                 throw "Opponent doesn't have enough currency."
             } else if (target.user.id === message.author.id) {
                 throw "You cannot versus yourself."
@@ -1510,13 +1516,13 @@ export class MessageCommand {
                         },
                         color: winner.displayHexColor,
                         fields: [{
-                                name: loser.user.username,
-                                value: operationFormat(loserBalance, amount * -1),
+                                name: winner.user.username,
+                                value: operationFormat(winnerBalance, amount),
                                 inline: true
                             },
                             {
-                                name: winner.user.username,
-                                value: operationFormat(winnerBalance, amount),
+                                name: loser.user.username,
+                                value: operationFormat(loserBalance, amount * -1),
                                 inline: true
                             }
                         ]
@@ -1685,6 +1691,43 @@ export class MessageCommand {
                 }
             })
         })
+    }
+    async gen() {
+        const { message, args } = this
+
+        if (args[1] === "view" || args[1] === "v") {
+            const generatorLevel = parseInt(args[2])
+            if (isNaN(generatorLevel)) return message.channel.send(errorEmbed("Invalid generator level."))
+
+            return message.channel.send({
+                embed: {
+                    title: `Generator ${generatorLevel}`,
+                    color: info.masonbot.color,
+                    description: `\`\`\`Price: ${genInfo(generatorLevel).cost.toLocaleString()}\nLimit: ${genInfo(generatorLevel).limit.toLocaleString()}\nHourly Amount: ${genInfo(generatorLevel).hourlyAmount.toLocaleString()}\nDaily Amount: ${genInfo(generatorLevel).dailyAmount.toLocaleString()}\`\`\``
+                }
+            })
+        } else if (args[1] === "upgrade" || args[1] === "u") {
+            const authorCollection = await getUser(message.author.id)
+            const nextLevel = authorCollection.generatorLevel + 1
+
+            if (authorCollection.currency < genInfo(nextLevel).cost) {
+                return message.channel.send(errorEmbed(`You need ${(genInfo(nextLevel).cost - authorCollection.currency).toLocaleString()} more currency to afford a generator upgrade.`))
+            }
+
+            await dboUsers.collection(message.author.id).updateOne({}, {
+                $inc: {
+                    generatorLevel: 1,
+                    currency: genInfo(nextLevel).cost * -1,
+                },
+            })
+            
+            await message.channel.send({
+                embed: {
+                    color: "00ff00",
+                    title: `Upgraded generator to level ${nextLevel}`,
+                }
+            })
+        }
     }
     async help() {
         const { message, args } = this

@@ -228,6 +228,10 @@ client.on("message", async message => {
                 case "ch":
                     command.check()
                     break
+                case "gen":
+                case "g":
+                    command.gen()
+                    break
                 case "page":
                 case false:
                     command.page()
