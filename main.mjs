@@ -28,7 +28,6 @@ let dboUsers, dboChannels, persistent
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag} at ${new Date().toLocaleString()}`)
-    client.channels.cache.get("712844965138399293").send(`Logged in as ${client.user.tag} at ${new Date().toLocaleString()}`)
     client.user.setActivity("for m,", {
         type: 'WATCHING'
     })

@@ -4,6 +4,8 @@ const require = createRequire(
 )
 
 // Imports
+import dotenv from "dotenv"
+dotenv.config()
 import * as math from "mathjs"
 import { client, Button, prefix, dboUsers, dboChannels } from "./main.mjs"
 import Fuse from 'fuse.js'
@@ -16,7 +18,6 @@ import YouTube from 'simple-youtube-api'
 import ColorThief from 'colorthief'
 import * as Canvas from 'canvas'
 const { createCanvas } = Canvas.default
-
 
 // Initialization
 global.channel = {}
@@ -249,13 +250,8 @@ export const quoteEmbed = (message, boardObject = false) => {
                 }),
                 url: message.url
             },
-            ...boardObject && {
-                footer: {
-                    text: `${boardObject.count}  ${boardObject.emoji}  ${message.id}`
-                }
-            },
             footer: {
-                text: "#" + message.channel.name
+                text: (boardObject ? `${boardObject.count}  ${boardObject.emoji}  ${message.id}  |  ` : "") + "#" + message.channel.name
             },
             timestamp: message.createdAt
         }) :
@@ -269,13 +265,8 @@ export const quoteEmbed = (message, boardObject = false) => {
                 }),
                 url: message.url
             },
-            ...boardObject && {
-                footer: {
-                    text: `${boardObject.count}  ${boardObject.emoji}  ${message.id}`
-                }
-            },
             footer: {
-                text: "#" + message.channel.name
+                text: (boardObject ? `${boardObject.count}  ${boardObject.emoji}  ${message.id}  |  ` : "") + "#" + message.channel.name
             },
             timestamp: message.createdAt
         })
@@ -1920,7 +1911,7 @@ export class ReactionCommand {
 
         const duplicate = fetchedMessages.find(m => {
             try {
-                return m.embeds[0].footer.text.endsWith(message.id)
+                return m.embeds[0].footer.text.indexOf(message.id) !== -1
             } catch {
                 return null
             }
