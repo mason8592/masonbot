@@ -51,7 +51,7 @@ const prefix = "m,"
 const testing = false;
 
 client.on("message", async message => {
-    if (testing && message.author.id !== lib.info.mason.id) return
+    if ((testing && message.author.id !== lib.info.mason.id) || message.author.bot) return
 
     if (message.content.startsWith(prefix)) {
         mostRecentCommand[message.author.id] = message.content
@@ -178,7 +178,7 @@ client.on("message", async message => {
         command.quote()
     }
 
-    if (!talkedRecently) {
+    if (!talkedRecently ) {
         talkedRecently = true
         setTimeout(() => {
             talkedRecently = false

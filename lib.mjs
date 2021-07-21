@@ -201,12 +201,16 @@ export const operationFormat = (start, amount) => {
     const formatAmount = absAmount.toLocaleString()
     const formatEnd = (start + amount).toLocaleString()
 
-    const maxLength = formatEnd.length > formatAmount.length ? formatEnd.length : formatAmount.length
+    const maxLength = [formatStart.length, formatAmount.length, formatEnd.length].sort((a, b) => a - b).reverse()[0]
+
+    let numSpaces = [maxLength - formatStart.length, maxLength - formatAmount.length, maxLength - formatEnd.length]
 
     try {
-        return `\`\`\`  ${" ".repeat(maxLength - formatStart.length)}${formatStart}\n${sign} ${" ".repeat(maxLength - formatAmount.length)}${formatAmount}\n= ${" ".repeat(maxLength - formatEnd.length)}${formatEnd}\`\`\``
-    } catch {
-        return "error"
+        return `\`\`\`  ${" ".repeat(numSpaces[0])}${formatStart}\n${sign} ${" ".repeat(numSpaces[1])}${formatAmount}\n= ${" ".repeat(numSpaces[2])}${formatEnd}\`\`\``
+    } catch (err) {
+        console.log(err)
+
+        return undefined
     }
 } // Formats an operation as though it were written down back when we were kids in school
 
@@ -750,7 +754,11 @@ export class MessageCommand {
         const targetCollection = await getUser(target.user.id)
         const amount = parseAmount(args[2], targetCollection.currency)
 
-        await changeBalance(target.id, amount)
+        await dboUsers.collection(target.user.id).updateOne({}, {
+            $set: {
+                currency: amount
+            }
+        })
 
         message.channel.send({
             embed: {
@@ -1720,7 +1728,7 @@ export class MessageCommand {
                     currency: genInfo(nextLevel).cost * -1,
                 },
             })
-            
+
             await message.channel.send({
                 embed: {
                     color: "00ff00",
@@ -1757,11 +1765,11 @@ export class MessageCommand {
                 break
             case "math":
             case "m":
-                response("Math", "m,math; m,m", "m,m <expression>", "Solves a math expression using the mathjs library.")
+                response("Math", "m,math | m,m", "m,m <expression>", "Solves a math expression using the mathjs library.")
                 break
             case "karma":
             case "km":
-                response("Karma", "m,karma; m,km", "m,km <member>|top", "Shows a user's upvotes/downvotes and karma, or shows the server's karma leaderboard.\n\nReact to a user's message with :upvote: or :downvote: to change their karma.")
+                response("Karma", "m,karma | m,km", "m,km <member>|top", "Shows a user's upvotes/downvotes and karma, or shows the server's karma leaderboard.\n\nReact to a user's message with :upvote: or :downvote: to change their karma.")
                 break
             case "hex":
                 response("Hex", "m,hex", "m,hex <imageurl|member|hexcode>", "Visualizes a color pallette for an image or member, or a single hex code.")
@@ -1774,37 +1782,37 @@ export class MessageCommand {
                 break
             case "spreadsheet":
             case "sp":
-                response("Spreadsheet", "m,spreadsheet m,sp", "m,sp <album>", "Shows information about an album from Mason's listening database.\n\n\`\`\`https://docs.google.com/spreadsheets/d/1jVLM0BXu7yDTeYfj_vbnmsgqDvjAih5nzUUSoDo2WgE/edit?usp=sharing\`\`\`")
+                response("Spreadsheet", "m,spreadsheet | m,sp", "m,sp <album>", "Shows information about an album from Mason's listening database.\n\n\`\`\`https://docs.google.com/spreadsheets/d/1jVLM0BXu7yDTeYfj_vbnmsgqDvjAih5nzUUSoDo2WgE/edit?usp=sharing\`\`\`")
                 break
             case "image":
             case "i":
-                response("Image", "m,image m,i", "m,i <search>", "Searches Google for images.")
+                response("Image", "m,image | m,i", "m,i <search>", "Searches Google for images.")
                 break
             case "macros":
-                response("Macros", "m,acro m,", "m,acro <create|view> <macroname> m, <macroname>", "Macros allow the user to run a custom, predefined series of commands at any time.")
+                response("Macros", "m,acro | m,", "m,acro <create|view> <macroname> m, <macroname>", "Macros allow the user to run a custom, predefined series of commands at any time.")
                 break
             case "quote":
                 response("Quote", "", "<messageurl> 💬 reaction", "Quotes a message, turning it into a nicely-formatted embed. Click the author's name to jump to the message.")
                 break
             case "settopic":
             case "st":
-                response("Set Topic", "m,settopic m,st", "m,st <text>", "Changes the topic of a user's channel.")
+                response("Set Topic", "m,settopic | m,st", "m,st <text>", "Changes the topic of a user's channel.")
                 break
             case "setcolor":
             case "sc":
-                response("Set Color", "m,setcolor m,sc", "m,sc <hexcode>", "Changes a user's role color.")
+                response("Set Color", "m,setcolor | m,sc", "m,sc <hexcode>", "Changes a user's role color.")
                 break
             case "setname":
             case "sn":
-                response("Set Name", "m,setname m,sn", "m,sn <text>", "Changes a user's role name.")
+                response("Set Name", "m,setname | m,sn", "m,sn <text>", "Changes a user's role name.")
                 break
             case "setemoji":
             case "se":
-                response("Set Emoji", "m,setemoji m,se", "m,se <text>", "Changes a user's channel emoji. Must be between 2 and 8 characters long. Emojis count as 2 characters.")
+                response("Set Emoji", "m,setemoji | m,se", "m,se <text>", "Changes a user's channel emoji. Must be between 2 and 8 characters long. Emojis count as 2 characters.")
                 break
             case "help":
             case "h":
-                response("Help", "m,help m,h", "m,h <feature>", "Shows information about a Masonbot feature.")
+                response("Help", "m,help | m,h", "m,h <feature>", "Shows information about a Masonbot feature.")
                 break
             case "createchannel":
             case "cc":
@@ -1815,27 +1823,27 @@ export class MessageCommand {
                 break
             case "bet":
             case "b":
-                response("Bet", "m,c bet m,c b", "m,c bet <amount> <?multiplier>", "Bets some currency at a certain multiplier (default 2). Multplier is parsed as an amount input type. Higher multipliers mean lower chance to win but higher earnings.")
+                response("Bet", "m,c bet | m,c b", "m,c bet <amount> <?multiplier>", "Bets some currency at a certain multiplier (default 2). Multplier is parsed as an amount input type. Higher multipliers mean lower chance to win but higher earnings.")
                 break
             case "pay":
                 response("Pay", "m,c pay", "m,c pay <member> <amount>", "Sends a user an amount of currency.")
                 break
             case "page":
-                response("Page", "m,c page m,c", "m,c page <?member>", "Shows currency-related information about a member, or about the user if no member is given.")
+                response("Page", "m,c page | m,c", "m,c page <?member>", "Shows currency-related information about a member, or about the user if no member is given.")
                 break
             case "vs":
                 response("Versus", "m,c vs", "m,c vs <member> <amount>", "Challenges a member to a versus match. Winner gets the currency, loser loses it.")
                 break
             case "check":
             case "ch":
-                response("Check", "m,c check m,c ch", "m,c ch", "Checks your hourly, daily, and generator. Gives buttons to collect them.")
+                response("Check", "m,c check | m,c ch", "m,c ch", "Checks your hourly, daily, and generator. Gives buttons to collect them.")
                 break
             case "bribe":
                 response("Bribe", "m,c bribe", "m,c bribe <user> {<command>} <amount>", "Bribes a user to execute a command for a certain amount of money. Command must be wrapped in {curly brackets}.")
                 break
             case "gen":
             case "g":
-                response("Generator", "m,c gen; m,c g", "m,c gen <view/v|upgrade/u> <?level| >", "Generators create money over time. You can collect them using m,c ch.\n\nIf you wish to view information about a generator, you can do m,c gen view <level>, or leave <level> blank to default to viewing the next generator. If you want to upgrade, it's m,c gen upgrade.")
+                response("Generator", "m,c gen | m,c g", "m,c gen <view/v|upgrade/u> <?level| >", "Generators create money over time. You can collect them using m,c ch.\n\nIf you wish to view information about a generator, you can do m,c gen view <level>, or leave <level> blank to default to viewing the next generator. If you want to upgrade, it's m,c gen upgrade.")
                 break
             case "raremasonbot":
                 response("Rare Masonbot", "", "", "Rare Masonbots have a 1/4096 chance of appearing on any non-bot message. Are you feeling lucky?")
@@ -1858,9 +1866,9 @@ export class MessageCommand {
             case "pin":
                 response("Pin", "", "📌 reaction", "After 3 pushpin reactions, pins the message.")
                 break
-            case "redocommand":
+            case "repeatcommand":
             case ",m":
-                response("Redo Command", ",m", ",m", "Typing ,m will redo your last command. Any message beginning with the bot's prefix is considered to be a command. Commands are not stored across Masonbot instances, so if it gives you an error, it's probably because Masonbot was recently restarted.")
+                response("Repeat Command", ",m", ",m", "Typing ,m will repeat your last command. Any message beginning with the bot's prefix is considered to be a command. Commands are not stored across Masonbot instances, so if it gives you an error, it's probably because Masonbot was recently restarted.")
                 break
             case "amount":
                 response("Amount Input Type", "", "", "Parses an amount.\n\nAccepts \"all\", \"random\", and \"random\"\nConverts k and m into 1,000 and 1,000,000 respectively\nPutting an x before an amount will return all of a user's balance except that amount\nInterprets text inside of [] as a math expression using the mathjs (like m,m), replacing $ with the user's currency and ? with a random decimal between 0 and 1")
