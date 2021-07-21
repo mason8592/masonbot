@@ -567,7 +567,7 @@ export class MessageCommand {
         try {
             if (!target || !targetCollection || !targetCollection.currency) {
                 throw "Invalid target."
-            } else if (isNaN(amount)) {
+            } else if (isNaN(amount) || amount < 0) {
                 throw "Invalid amount."
             } else if (amount > authorCollection.currency) {
                 throw "You don't have enough money."
