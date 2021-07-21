@@ -25,6 +25,7 @@ let talkedRecently = false
 disbut(client)
 const { MessageButton: Button } = disbut
 let dboUsers, dboChannels, persistent
+const mostRecentCommand = {}
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag} at ${new Date().toLocaleString()}`)
@@ -45,23 +46,33 @@ Mongo.connect(process.env.MONGODB_URL, {
 })
 
 // OTHER
-let prefix = "m,"
+const prefix = "m,"
+const testing = false;
 
 client.on("message", async message => {
+    if (testing && message.author.id !== lib.info.mason.id) return
+
+    if (message.content.startsWith(prefix)) {
+        mostRecentCommand[message.author.id] = message.content
+    }
+
+    if (message.content === ",m") {
+        if (!mostRecentCommand[message.author.id]) return message.channel.send(lib.errorEmbed("You haven't sent a command yet.\n\n,m only works on commands that start with the bot's prefix."))
+
+        return lib.sudo(message, message.member, mostRecentCommand[message.author.id])
+    }
+
     if (Math.floor(Math.random() * 4096) === 1) {
-        message.react("740160198689292309")
-            .then(() => {
-                message.channel.send({
-                    embed: {
-                        author: {
-                            name: "A rare Masonbot has appeared!",
-                            icon_url: "https://i.imgur.com/6NBJlFX.png"
-                        }
-                    },
-                    color: "000001"
-                })
-            })
-            .catch(e => console.log(e))
+        await message.react("740160198689292309")
+        await message.channel.send({
+            embed: {
+                author: {
+                    name: "A rare Masonbot has appeared!",
+                    icon_url: "https://i.imgur.com/6NBJlFX.png"
+                }
+            },
+            color: "000001"
+        })
     }
 
     if (!!dboUsers) {

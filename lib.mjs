@@ -282,21 +282,21 @@ export const quoteEmbed = (message, boardObject = false) => {
 } // Returns an embed with data about a message
 
 export const sudo = (originalMessage, sudoMember, command) => {
-    const sudo = originalMessage
+    const sudoMessage = originalMessage
 
-    Object.defineProperty(sudo, "member", {
+    Object.defineProperty(sudoMessage, "member", {
         value: sudoMember
     })
-    Object.defineProperty(sudo, "author", {
+    Object.defineProperty(sudoMessage, "author", {
         value: sudoMember.user
     })
-    Object.defineProperty(sudo, "content", {
+    Object.defineProperty(sudoMessage, "content", {
         value: command
     })
-    Object.defineProperty(sudo, "isSudo", {
+    Object.defineProperty(sudoMessage, "isSudo", {
         value: true
     })
-    client.emit("message", sudo)
+    client.emit("message", sudoMessage)
 } // Execute a message as another user
 
 export const genInfo = (level) => {
@@ -791,7 +791,8 @@ export class MessageCommand {
         })
     }
     async say() {
-        const { message } = this
+        const { message, args } = this
+        if (args.length <= 0) return
         const userCollection = await getUser(message.author.id)
 
         // Expand on this. Have it be a function that can take something like {randommember.mention} and return that mention, rather than an object that can only take one specific string. Also {randomnumberx-y} where the user can input their own x and y and it will give a random number between the two. Just use regex to match the {} and then handle it from there.
@@ -1054,7 +1055,7 @@ export class MessageCommand {
         const target = args.length > 0 ? parseMember(args[0]) : message.member
         const targetCollection = !!target ? await getUser(target.user.id) : null
 
-        if (args[0] === "list") {
+        if (args[0] === "top") {
             const userCollections = message.guild.members.cache.map(member => getUser(member.user.id))
             const resolvedUsers = await Promise.all(userCollections)
             const resolvedList = resolvedUsers.filter(user => !!user && !!user.info)
@@ -1756,11 +1757,11 @@ export class MessageCommand {
                 break
             case "math":
             case "m":
-                response("Math", "m,math m,m", "m,m <expression>", "Solves a math expression using the mathjs library.")
+                response("Math", "m,math; m,m", "m,m <expression>", "Solves a math expression using the mathjs library.")
                 break
             case "karma":
             case "km":
-                response("Karma", "m,karma m,km", "m,km <member>", "Shows a user's upvotes/downvotes and karma.\n\nReact to a user's message with :upvote: or :downvote: to change their karma.")
+                response("Karma", "m,karma; m,km", "m,km <member>|top", "Shows a user's upvotes/downvotes and karma, or shows the server's karma leaderboard.\n\nReact to a user's message with :upvote: or :downvote: to change their karma.")
                 break
             case "hex":
                 response("Hex", "m,hex", "m,hex <imageurl|member|hexcode>", "Visualizes a color pallette for an image or member, or a single hex code.")
