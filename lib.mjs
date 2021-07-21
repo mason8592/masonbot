@@ -4,7 +4,6 @@ const require = createRequire(
 )
 
 // Imports
-const config = require("./config.json")
 import * as math from "mathjs"
 import { client, Button, prefix, dboUsers, dboChannels } from "./main.mjs"
 import Fuse from 'fuse.js'
@@ -22,11 +21,11 @@ const { createCanvas } = Canvas.default
 // Initialization
 global.channel = {}
 global.guild = {}
-const doc = new GoogleSpreadsheet(config.GOOGLE_SPREADSHEETS_SHEETID)
-const gi = new googleImages(config.GOOGLE_IMAGES_ENGINEID, config.GOOGLE_IMAGES_APIKEY)
-const youtube = new YouTube(config.YOUTUBE_APIKEY)
-doc.useApiKey(config.GOOGLE_SPREADSHEETS_APIKEY)
-const covers = albumcover(config.LASTFM_APIKEY)
+const doc = new GoogleSpreadsheet(process.env.GOOGLE_SPREADSHEETS_SHEETID)
+const gi = new googleImages(process.env.GOOGLE_IMAGES_ENGINEID, process.env.GOOGLE_IMAGES_APIKEY)
+const youtube = new YouTube(process.env.YOUTUBE_APIKEY)
+doc.useApiKey(process.env.GOOGLE_SPREADSHEETS_APIKEY)
+const covers = albumcover(process.env.LASTFM_APIKEY)
 let docLoaded = false
 
 export const info = {

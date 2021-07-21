@@ -19,7 +19,6 @@ const Mongo = MongoClient.MongoClient
 const app = express()
 
 // Initialization
-const config = require("./config.json")
 import * as lib from "./lib.mjs"
 const gotCurrency = new Set()
 let talkedRecently = false
@@ -35,7 +34,7 @@ client.once('ready', () => {
     })
 })
 
-Mongo.connect(config.MONGODB_URL, {
+Mongo.connect(process.env.MONGODB_URL, {
     useUnifiedTopology: true
 }, function(err, database) {
     if (err) throw err
