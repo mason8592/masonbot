@@ -4,4 +4,3 @@ config.json
 .env
 .git
 .vscode
-node_modules/
