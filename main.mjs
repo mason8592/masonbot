@@ -32,6 +32,7 @@ client.once('ready', () => {
     client.user.setActivity("for m,", {
         type: 'WATCHING'
     })
+    return client.users.cache.get("264590999479648268").send("Masonbot is online.")
 })
 
 Mongo.connect(process.env.MONGODB_URL, {
