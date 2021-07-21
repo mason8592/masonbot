@@ -28,7 +28,7 @@ const { MessageButton: Button } = disbut
 let dboUsers, dboChannels, persistent
 
 client.once('ready', () => {
-    console.log(`Logged in as ${client.user.tag}`)
+    console.log(`Logged in as ${client.user.tag} at ${new Date().toLocaleDateString}`)
     client.user.setActivity("for m,", {
         type: 'WATCHING'
     })
