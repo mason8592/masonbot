@@ -1857,6 +1857,11 @@ export class MessageCommand {
                 break
             case "pin":
                 response("Pin", "", "📌 reaction", "After 3 pushpin reactions, pins the message.")
+                break
+            case "redocommand":
+            case ",m":
+                response("Redo Command", ",m", ",m", "Typing ,m will redo your last command. Any message beginning with the bot's prefix is considered to be a command. Commands are not stored across Masonbot instances, so if it gives you an error, it's probably because Masonbot was recently restarted.")
+                break
             case "amount":
                 response("Amount Input Type", "", "", "Parses an amount.\n\nAccepts \"all\", \"random\", and \"random\"\nConverts k and m into 1,000 and 1,000,000 respectively\nPutting an x before an amount will return all of a user's balance except that amount\nInterprets text inside of [] as a math expression using the mathjs (like m,m), replacing $ with the user's currency and ? with a random decimal between 0 and 1")
                 break
@@ -1880,7 +1885,7 @@ export class MessageCommand {
                             },
                             {
                                 name: "Functional",
-                                value: "\`\`\`macros, quote, settopic, setcolor, setname, setemoji, help, createchannel\`\`\`",
+                                value: "\`\`\`macros, quote, settopic, setcolor, setname, setemoji, help, createchannel,\`\`\`",
                                 inline: true
                             },
                             {
@@ -1890,7 +1895,7 @@ export class MessageCommand {
                             },
                             {
                                 name: "Features",
-                                value: "\`\`\`raremasonbot, collab, rift, activitycurrency, pollchannel, boards, pin\`\`\`",
+                                value: "\`\`\`raremasonbot, collab, rift, activitycurrency, pollchannel, boards, pin, redocommand\`\`\`",
                                 inline: true
                             },
                             {

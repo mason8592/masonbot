@@ -57,7 +57,7 @@ client.on("message", async message => {
     }
 
     if (message.content === ",m") {
-        if (!mostRecentCommand[message.author.id]) return message.channel.send(lib.errorEmbed("You haven't sent a command yet.\n\n,m only works on commands that start with the bot's prefix."))
+        if (!mostRecentCommand[message.author.id]) return message.channel.send(lib.errorEmbed("You haven't sent a command yet."))
 
         return lib.sudo(message, message.member, mostRecentCommand[message.author.id])
     }
