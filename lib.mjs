@@ -764,7 +764,7 @@ export class MessageCommand {
         let userCollection
 
         if (args[1] && parseMember(args[1])) {
-            userCollection = await getUser(parseMember(args[0]).user.id)
+            userCollection = await getUser(parseMember(args[1]).user.id)
         } else {
             userCollection = await getUser(message.author.id)
         }
