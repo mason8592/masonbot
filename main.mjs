@@ -190,7 +190,7 @@ client.on("message", async message => {
     }
 
     if (cmd === "cc") {
-        message.guild.channels.create(argString, {
+        message.guild.channels.create(args.join(" "), {
                 permissionOverwrites: [{
                     id: message.author.id,
                     allow: ["MANAGE_CHANNELS", "MANAGE_ROLES", "MANAGE_MESSAGES"]

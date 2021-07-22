@@ -12,26 +12,25 @@ client.once('ready', () => {
 client.on("message", async message => {
     if (message.content === "sim") {
         let iterations = 0
-        let start = 1000000
+        let start = 10000000000000000
         let amount = start
         let peak = 0;
-        
-        console.log(start.toLocaleString())
+        let amounts = [start.toLocaleString()]
     
-        for (var i = 0; amount >= start / 1000; i++) {
+        for (var i = 0; amount >= 1; i++) {
             iterations += 1
     
             if (amount > peak) {
                 peak = amount
-            }
+            }   
     
             amount = amount += (Math.random() > 0.5 ? -1 : 1) * (amount * Math.random())
-            console.log(parseInt(amount.toFixed(0)).toLocaleString())
-    
-            if (amount <= start / 1000) {
-                const attachment = new Discord.MessageAttachment(Buffer.from("Fortnite"), "sim." + extension)
+            amounts.push(parseInt(amount.toFixed(0)).toLocaleString())
 
-                message.channel.send(`Ran out in ${iterations} iterations. Peak of ${peak.toFixed(0)} (${(peak / start).toFixed(2)} times increase)`, attachment)
+            if (amount <= 1) {
+                const attachment = new Discord.MessageAttachment(Buffer.from(amounts.join("\n")), "sim.txt")
+
+                message.channel.send(`\`\`\`Ran out in ${iterations} iterations. Peak of ${parseInt(peak.toFixed(0)).toLocaleString()} (${(peak / start).toFixed(2)} times increase)\`\`\``, attachment)
             }
         }     
     }
