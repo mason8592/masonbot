@@ -12,7 +12,7 @@ client.once('ready', () => {
 client.on("message", async message => {
     if (message.content === "sim") {
         let iterations = 0
-        let start = 10000000000000000
+        let start = 1000000000
         let amount = start
         let peak = 0;
         let amounts = [start.toLocaleString()]

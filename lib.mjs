@@ -28,6 +28,7 @@ const youtube = new YouTube(process.env.YOUTUBE_APIKEY)
 doc.useApiKey(process.env.GOOGLE_SPREADSHEETS_APIKEY)
 const covers = albumcover(process.env.LASTFM_APIKEY)
 let docLoaded = false
+const lastCheck = {}
 
 export const info = {
     masdim: {
@@ -1644,7 +1645,12 @@ export class MessageCommand {
             }
         }
 
+        if (lastCheck[message.author.id]) await lastCheck[message.author.id].edit({
+            embed: lastCheck[message.author.id].embeds[0],
+            buttons: null
+        })
         const checkMsg = await message.channel.send(await checkEmbed(message))
+        lastCheck[message.author.id] = checkMsg
 
         let filter = (button) => button.clicker.user.id === message.author.id
         const collector = await checkMsg.createButtonCollector(filter, {})
