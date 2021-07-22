@@ -335,7 +335,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
     let command = new lib.ReactionCommand(reaction, user)
 
     switch (emoji.name) {
-        case "🐃":
+        case "💬":
             command.quote()
             break
         case "⭐":
