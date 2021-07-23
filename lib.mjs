@@ -447,7 +447,8 @@ export const checkEmbed = async (message, plus) => {
             new Button({
                 style: moneyInGen === genInfo(generatorLevel).limit ? "green" : "red",
                 label: "Gen",
-                id: "gen"
+                id: "gen",
+                disabled: moneyInGen === 0
             }),
             new Button({
                 style: hourlyReady ? "green" : "red",
@@ -1563,20 +1564,20 @@ export class MessageCommand {
         const { message, args } = this
         const [subCmd, terCmd] = [...args]
 
-        const userCollection = await getUser(message.author.id)
-
-        const {
-            dailyTime,
-            hourlyTime,
-            currency,
-            generatorLevel,
-        } = userCollection,
-        moneyInGen = userCollection.moneyInGen()
-
-        const dailyReady = new Date() - dailyTime.getTime() > 86400000
-        const hourlyReady = new Date() - hourlyTime.getTime() > 3600000
-
         if (terCmd === "auto" || terCmd === "a") {
+            const userCollection = await getUser(message.author.id)
+
+            const {
+                dailyTime,
+                hourlyTime,
+                currency,
+                generatorLevel,
+            } = userCollection,
+            moneyInGen = userCollection.moneyInGen()
+
+            const dailyReady = new Date() - dailyTime.getTime() > 86400000
+            const hourlyReady = new Date() - hourlyTime.getTime() > 3600000
+
             const successful = {
                 hourly: false,
                 daily: false,
@@ -1645,18 +1646,26 @@ export class MessageCommand {
             }
         }
 
-        if (lastCheck[message.author.id]) await lastCheck[message.author.id].edit({
-            embed: lastCheck[message.author.id].embeds[0],
-            buttons: null
-        })
         const checkMsg = await message.channel.send(await checkEmbed(message))
-        lastCheck[message.author.id] = checkMsg
 
         let filter = (button) => button.clicker.user.id === message.author.id
         const collector = await checkMsg.createButtonCollector(filter, {})
 
         collector.on('collect', async button => {
             await button.reply.defer()
+
+            const userCollection = await getUser(message.author.id)
+
+            const {
+                dailyTime,
+                hourlyTime,
+                currency,
+                generatorLevel,
+            } = userCollection,
+            moneyInGen = userCollection.moneyInGen()
+
+            const dailyReady = new Date() - dailyTime.getTime() > 86400000
+            const hourlyReady = new Date() - hourlyTime.getTime() > 3600000
 
             dboUsers.collection(message.author.id).find({}).toArray(async function(err, result) {
                 switch (button.id) {
