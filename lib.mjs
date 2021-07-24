@@ -1429,8 +1429,8 @@ export class MessageCommand {
 
         const target = parseMember(args[1])
         const userCollection = await getUser(message.author.id)
-        const amount = parseAmount(args[2], userCollection.currency)
         const targetCollection = target ? await getUser(target.user.id) : null
+        const amount = args[2].toLowerCase() === "max" ? Math.max(userCollection.currency, targetCollection.currency) : parseAmount(args[2], userCollection.currency)
 
         try {
             if (!target || !targetCollection) {
