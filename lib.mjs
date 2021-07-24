@@ -1430,7 +1430,8 @@ export class MessageCommand {
         const target = parseMember(args[1])
         const userCollection = await getUser(message.author.id)
         const targetCollection = target ? await getUser(target.user.id) : null
-        const amount = args[2].toLowerCase() === "max" ? Math.max(userCollection.currency, targetCollection.currency) : parseAmount(args[2], userCollection.currency)
+        const amount = args[2].toLowerCase() === "max" ? Math.min(userCollection.currency, targetCollection.currency) : parseAmount(args[2], userCollection.currency)
+        console.log(amount, args[2])
 
         try {
             if (!target || !targetCollection) {
