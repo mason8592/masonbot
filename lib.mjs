@@ -1721,13 +1721,13 @@ export class MessageCommand {
         const { message, args } = this
 
         if (args[1] === "view" || args[1] === "v") {
-            const generatorLevel = parseInt(args[2]) || (await getUser(message.author.id)).generatorLevel
+            const generatorLevel = parseInt(args[2]) || (await getUser(message.author.id)).generatorLevel + 1
 
             return message.channel.send({
                 embed: {
                     title: `Generator ${generatorLevel + 1}`,
                     color: info.masonbot.color,
-                    description: `\`\`\`Price: ${genInfo(generatorLevel + 1).cost.toLocaleString()}\nLimit: ${genInfo(generatorLevel + 1).limit.toLocaleString()}\nHourly Amount: ${genInfo(generatorLevel + 1).hourlyAmount.toLocaleString()}\nDaily Amount: ${genInfo(generatorLevel + 1).dailyAmount.toLocaleString()}\`\`\``
+                    description: `\`\`\`Price: ${genInfo(generatorLevel).cost.toLocaleString()}\nLimit: ${genInfo(generatorLevel).limit.toLocaleString()}\nHourly Amount: ${genInfo(generatorLevel).hourlyAmount.toLocaleString()}\nDaily Amount: ${genInfo(generatorLevel).dailyAmount.toLocaleString()}\`\`\``
                 }
             })
         } else if (args[1] === "upgrade" || args[1] === "u") {
