@@ -1725,7 +1725,7 @@ export class MessageCommand {
 
             return message.channel.send({
                 embed: {
-                    title: `Generator ${generatorLevel + 1}`,
+                    title: `Generator ${generatorLevel}`,
                     color: info.masonbot.color,
                     description: `\`\`\`Price: ${genInfo(generatorLevel).cost.toLocaleString()}\nLimit: ${genInfo(generatorLevel).limit.toLocaleString()}\nHourly Amount: ${genInfo(generatorLevel).hourlyAmount.toLocaleString()}\nDaily Amount: ${genInfo(generatorLevel).dailyAmount.toLocaleString()}\`\`\``
                 }
