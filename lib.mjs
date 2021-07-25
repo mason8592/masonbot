@@ -1725,9 +1725,9 @@ export class MessageCommand {
 
             return message.channel.send({
                 embed: {
-                    title: `Generator ${generatorLevel}`,
+                    title: `Generator ${generatorLevel + 1}`,
                     color: info.masonbot.color,
-                    description: `\`\`\`Price: ${genInfo(generatorLevel).cost.toLocaleString()}\nLimit: ${genInfo(generatorLevel).limit.toLocaleString()}\nHourly Amount: ${genInfo(generatorLevel).hourlyAmount.toLocaleString()}\nDaily Amount: ${genInfo(generatorLevel).dailyAmount.toLocaleString()}\`\`\``
+                    description: `\`\`\`Price: ${genInfo(generatorLevel + 1).cost.toLocaleString()}\nLimit: ${genInfo(generatorLevel + 1).limit.toLocaleString()}\nHourly Amount: ${genInfo(generatorLevel + 1).hourlyAmount.toLocaleString()}\nDaily Amount: ${genInfo(generatorLevel + 1).dailyAmount.toLocaleString()}\`\`\``
                 }
             })
         } else if (args[1] === "upgrade" || args[1] === "u") {
@@ -1848,7 +1848,7 @@ export class MessageCommand {
                 response("Page", "m,c page | m,c", "m,c page <?member>", "Shows currency-related information about a member, or about the user if no member is given.")
                 break
             case "vs":
-                response("Versus", "m,c vs", "m,c vs <member> <amount>", "Challenges a member to a versus match. Winner gets the currency, loser loses it.")
+                response("Versus", "m,c vs", "m,c vs <member> <amount>", "Challenges a member to a versus match. Winner gets the currency, loser loses it.\nVersus is the only command to accept \"max\" as an amount. This wagers the maximum amount of money both parties can afford.")
                 break
             case "check":
             case "ch":
