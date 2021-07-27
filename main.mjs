@@ -98,7 +98,7 @@ client.on("message", async message => {
     if (message.channel.id === "859688768876707870") {
         if (message.author.bot) return
 
-        let { story } = await getChannel("859688768876707870")
+        let { story } = await lib.getChannel("859688768876707870")
 
         let updatePersistent = async (newStory) => {
             if (persistent) await persistent.delete().catch(() => {})
