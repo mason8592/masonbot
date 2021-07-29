@@ -7,7 +7,7 @@ const require = createRequire(
 import dotenv from "dotenv"
 dotenv.config()
 import * as math from "mathjs"
-import { client, Button, prefix, mostRecentCommand } from "./main.mjs"
+import { client, prefix, mostRecentCommand, Button, ActionRow } from "./main.mjs"
 import Fuse from 'fuse.js'
 import util from "util"
 import * as Discord from "discord.js"

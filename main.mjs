@@ -1,27 +1,25 @@
 // Imports
-
-import { createRequire } from "module"
-const require = createRequire(
-    import.meta.url
-)
-import dotenv from "dotenv"
-dotenv.config()
-import Discord, { MessageAttachment } from 'discord.js'
-const client = new Discord.Client({
-    fetchAllMembers: true,
-    sync: true,
-    partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
-})
-const disbut = require("discord-buttons")
+    import { createRequire } from "module"
+    const require = createRequire(
+        import.meta.url
+    )
+    import dotenv from "dotenv"
+    dotenv.config()
+    import Discord, { MessageAttachment } from 'discord.js'
+    const client = new Discord.Client({
+        fetchAllMembers: true,
+        sync: true,
+        partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
+    })
+    const disbut = require("discord-buttons")
 
 // Initialization
 import * as lib from "./lib.mjs"
-import { getUser } from "./lib.mjs"
 const { dboUsers, dboChannels } = lib
 const gotCurrency = new Set()
 let talkedRecently = false
 disbut(client)
-const { MessageButton: Button } = disbut
+const { MessageButton: Button, MessageActionRow: ActionRow } = disbut
 let persistent
 const mostRecentCommand = {}
 
@@ -41,7 +39,7 @@ const cache = {}
 client.on("message", async message => {
     if ((testing && message.author.id !== lib.info.mason.id) || message.author.bot) return
 
-    if (message.content.startsWith(prefix)) {
+    if (message.content.toLowerCase().startsWith(prefix)) {
         mostRecentCommand[message.author.id] = message.content
     }
 
@@ -189,7 +187,7 @@ client.on("message", async message => {
 
     // Main command handler
 
-    if (!message.content.startsWith(prefix)) return
+    if (!message.content.toLowerCase().startsWith(prefix)) return
 
     switch (cmd) {
         case "currency":
@@ -364,4 +362,4 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 client.login()
 
-export { client, prefix, Button, dboUsers, dboChannels, mostRecentCommand }
+export { client, prefix, Button, ActionRow, dboUsers, dboChannels, mostRecentCommand }
