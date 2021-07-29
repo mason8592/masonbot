@@ -140,7 +140,7 @@ export const getChannel = (channelID) => {
 } // Pulls a channel from the database
 
 export const parseAmount = (amount, balance = 0) => {
-    let parsed = amount.replace(/[,x]/g, "")
+    let parsed = amount.toLowerCase().replace(/[,x]/g, "")
     const suffixRegex = /([\d.]+[m|k]+)|[(\d.)]+[m|k]+/g
 
     balance = parseInt(balance)
