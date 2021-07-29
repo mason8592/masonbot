@@ -22,6 +22,7 @@ import MongoClient from 'mongodb'
 const Mongo = MongoClient.MongoClient
 import express, { response } from 'express'
 const app = express()
+import * as main from "./main.mjs"
 
 // Initialization
 global.channel = {}
@@ -231,7 +232,7 @@ export const changeBalance = async (userID, amount) => {
     return new Promise((resolve, reject) => {
         dboUsers.collection(userID).updateOne({}, {
             $inc: {
-                currency: amount
+                currency: Math.round(amount)
             }
         }).then(() => {
             getUser(userID).then(promise => {
@@ -477,7 +478,7 @@ export const checkEmbed = async (message, plus) => {
 
     return {
         embed: {
-            color: "e7e7e7",
+            color: info.masonbot.color,
             author: {
                 name: `Currency: ${currency.toLocaleString()}`,
                 icon_url: message.author.avatarURL({
@@ -641,7 +642,6 @@ export class MessageCommand {
                 throw "You don't have enough money."
             }
         } catch (err) {
-            console.error(err.message ? err.message : err)
             return message.channel.send(
                 errorEmbed(err)
             )
@@ -857,7 +857,7 @@ export class MessageCommand {
 
         message.channel.send({
             embed: {
-                color: 'e7e7e7',
+                color: info.masonbot.color,
                 title: `Total: ${serverBalance.toLocaleString()}`,
                 description: sorted.map(user => `${user.info.emoji}\`${user.generatorLevel}${" ".repeat((6 - user.generatorLevel.toString().length) + (topCurrencyLength - user.currency.toLocaleString().length))}${user.currency.toLocaleString()}${" ".repeat(8 - percentage(user).length)}${percentage(user)} %\`${user.info.id === message.author.id ? " **<-**" : ""}`).join(`\n`)
             }
@@ -1934,7 +1934,7 @@ export class MessageCommand {
                 response("Rift", "", "", "Sometimes, a rift in Masondimensional space will form. For some currently unknown reason, there's usually currency on the other side.")
                 break
             case "activitycurrency":
-                response("Activity Currency", "", "", "Every message, on a cooldown of 10 seconds, will earn the sender a small amount of currency.")
+                response("Activity Currency", "", "", "Every message, on a cooldown of 60 seconds, will earn the sender currency equal to their generator level to the power of 5.")
                 break
             case "pollchannel":
                 response("Poll Channel", "", "", "I don't know, I haven't made it yet.")

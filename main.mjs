@@ -16,6 +16,7 @@ const disbut = require("discord-buttons")
 
 // Initialization
 import * as lib from "./lib.mjs"
+import { getUser } from "./lib.mjs"
 const { dboUsers, dboChannels } = lib
 const gotCurrency = new Set()
 let talkedRecently = false
@@ -35,6 +36,7 @@ client.once('ready', () => {
 // OTHER
 const prefix = "m,"
 const testing = false;
+const cache = {}
 
 client.on("message", async message => {
     if ((testing && message.author.id !== lib.info.mason.id) || message.author.bot) return
@@ -62,23 +64,16 @@ client.on("message", async message => {
         })
     }
 
-    if (!!dboUsers) {
-        if (!gotCurrency.has(message.author.id)) {
-            dboUsers.collection(message.author.id).find({}).toArray(function(err, result) {
-                if (!result[0]) return
-                dboUsers.collection(message.author.id).updateOne({}, {
-                    $inc: {
-                        currency: Math.round(Math.pow(result[0].generatorLevel, 4)),
-                    },
-                })
-            })
-            gotCurrency.add(message.author.id)
-        } else {
-            let t = setTimeout(() => {
-                gotCurrency.delete(message.author.id)
-                clearTimeout(t)
-            }, 10000)
-        }
+    if (!gotCurrency.has(message.author.id)) {
+        const authorCollection = await lib.getUser(message.author.id)
+        if (authorCollection === undefined) return
+
+        lib.changeBalance(message.author.id, authorCollection.generatorLevel ** 5)
+        gotCurrency.add(message.author.id)
+    } else {
+        setTimeout(() => {
+            gotCurrency.delete(message.author.id)
+        }, 60000)
     }
 
     if (message.channel.id === "859688768876707870") {
