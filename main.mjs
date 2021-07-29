@@ -204,9 +204,6 @@ client.on("message", async message => {
                 case "set":
                     command.setCurrency()
                     break
-                case "bribe":
-                    command.bribe()
-                    break
                 case "top":
                 case "t":
                     command.top()

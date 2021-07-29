@@ -708,6 +708,8 @@ export class MessageCommand {
         const member = parseMember(args[0])
         const command = message.content.split(" ").slice(2).join(" ")
 
+        console.log(member)
+
         if (message.author.id === info.mason.id) {
             sudo(message, member, command)
         } else {
@@ -1007,91 +1009,6 @@ export class MessageCommand {
                 color: message.member.displayHexColor,
                 description: `Changed the name of your hoisted role from **${previousName}** to **${desiredName}**`,
             }
-        })
-    }
-    async bribe() {
-        const { message, args } = this
-
-        const command = message.content.substring(
-            message.content.indexOf("{") + 1,
-            message.content.indexOf("}")
-        )
-        const split = message.content.split(/[{}]/g)
-        const noCommand = split[0].trim() + " " + split[2].trim()
-        const amount = parseAmount(noCommand.split(" ")[3])
-        const target = parseMember(args[1])
-        const { currency } = await getUser(message.author.id)
-
-        try {
-            if (isNaN(amount)) {
-                throw "Invalid amount."
-            } else if (amount > currency) {
-                throw "You don't have enough currency."
-            } else if (!target) {
-                throw "Invalid target."
-            } else if (!command) {
-                throw "Invalid command."
-            } else if (message.author.id === target.user.id) {
-                throw "You can't bribe yourself."
-            }
-        } catch (err) {
-            return message.channel.send(
-                errorEmbed(err)
-            )
-        }
-
-        message.channel.send({
-            embed: {
-                title: `${message.author.username} is bribing ${target.user.username}`,
-                description: `\`${command}\` for **${amount.toLocaleString()}**`,
-                color: info.masonbot.color
-            },
-            buttons: [
-                new Button({
-                    style: "green",
-                    label: "Accept",
-                    id: "accept"
-                }),
-                new Button({
-                    style: "red",
-                    label: "Deny",
-                    id: "deny"
-                })
-            ]
-        }).then(async bribeMessage => {
-            const filter = (button) => button.clicker.user.id === target.user.id
-            const collector = await bribeMessage.createButtonCollector(filter, {})
-
-            collector.on('collect', async button => {
-                await button.reply.defer()
-
-                if (button.id === "accept") {
-                    sudo(message, target, command)
-
-                    await bribeMessage.edit({
-                        embed: {
-                            title: `Bribe accepted.`,
-                            color: info.masonbot.color
-                        },
-                        buttons: null
-                    })
-
-                    await sleep(2000)
-
-                    await changeBalance(target.user.id, amount)
-                    await changeBalance(message.author.id, amount * -1)
-
-                    return bribeMessage.edit({
-                        embed: {
-                            title: `${message.author.username} paid ${target.user.username} the bribe of ${amount.toLocaleString()}`,
-                            color: info.masonbot.color
-                        },
-                        buttons: null
-                    })
-                } else if (button.id === "deny") {
-                    bribeMessage.delete()
-                }
-            })
         })
     }
     async math() {
@@ -1917,9 +1834,6 @@ export class MessageCommand {
             case "ch":
                 response("Check", "m,c check | m,c ch", "m,c ch", "Checks your hourly, daily, and generator. Gives buttons to collect them.")
                 break
-            case "bribe":
-                response("Bribe", "m,c bribe", "m,c bribe <user> {<command>} <amount>", "Bribes a user to execute a command for a certain amount of money. Command must be wrapped in {curly brackets}.")
-                break
             case "gen":
             case "g":
                 response("Generator", "m,c gen | m,c g", "m,c gen view <?number> | m,c gen upgrade", "Generators create money over time. You can collect them using m,c ch.\n\nIf you wish to view information about a generator, you can do m,c gen view <level>, or leave <level> blank to default to viewing the next generator. If you want to upgrade, it's m,c gen upgrade.")
@@ -1982,7 +1896,7 @@ export class MessageCommand {
                             },
                             {
                                 name: "Currency",
-                                value: "\`\`\`top, bet, pay, page, vs, check, bribe, gen\`\`\`",
+                                value: "\`\`\`top, bet, pay, page, vs, check, gen\`\`\`",
                                 inline: true
                             },
                             {
