@@ -34,7 +34,7 @@ client.once('ready', () => {
 
 // OTHER
 const prefix = "m,"
-const testing = true;
+const testing = false;
 
 client.on("message", async message => {
     if ((testing && message.author.id !== lib.info.mason.id) || message.author.bot) return
