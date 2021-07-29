@@ -7,7 +7,7 @@ const require = createRequire(
 import dotenv from "dotenv"
 dotenv.config()
 import * as math from "mathjs"
-import { client, Button, prefix, dboUsers, dboChannels, mostRecentCommand } from "./main.mjs"
+import { client, Button, prefix, mostRecentCommand } from "./main.mjs"
 import Fuse from 'fuse.js'
 import util from "util"
 import * as Discord from "discord.js"
@@ -18,6 +18,10 @@ import YouTube from 'simple-youtube-api'
 import ColorThief from 'colorthief'
 import * as Canvas from 'canvas'
 const { createCanvas } = Canvas.default
+import MongoClient from 'mongodb'
+const Mongo = MongoClient.MongoClient
+import express, { response } from 'express'
+const app = express()
 
 // Initialization
 global.channel = {}
@@ -28,7 +32,55 @@ const youtube = new YouTube(process.env.YOUTUBE_APIKEY)
 doc.useApiKey(process.env.GOOGLE_SPREADSHEETS_APIKEY)
 const covers = albumcover(process.env.LASTFM_APIKEY)
 let docLoaded = false
-const lastCheck = {}
+const prefs = {}
+
+export const refreshPrefs = () => {
+    dboUsers.listCollections().toArray(function(err, collections) {
+        if (err) console.log(err);
+
+        collections.forEach(async collection => {
+            getUser(collection.name).then(user => {
+                if (!user.info || !user.info.id) return
+
+                prefs[collection.name] = user.prefs
+            })
+        })
+    })
+}
+
+export const addToAll = async (addition, value) => {
+    await dboUsers.listCollections().toArray(function(err, collections) {
+        if (err) console.log(err);
+
+        collections.forEach(collection => {
+            getUser(collection.name).then(async user => {
+                if (!user.info || !user.info.id) return
+                if ((await dboUsers.collection(collection.name).findOne({[addition]: { $exists: true } })) !== null) return
+
+                dboUsers.collection(collection.name).updateOne({ "info.id": collection.name }, {
+                    $set: {
+                        [addition]: value
+                    }
+                })
+            })
+        })
+    })
+
+    console.log(`Added "${addition}" as "${value}" to all members of the Mason Dimension.`)
+}
+
+Mongo.connect(process.env.MONGODB_URL, {
+    useUnifiedTopology: true
+}, function(err, database) {
+    if (err) throw err
+
+    app.listen(3000)
+    console.log("Listening on port 3000")
+    global.dboUsers = database.db("users")
+    global.dboChannels = database.db("channels")
+
+    refreshPrefs()
+})
 
 export const info = {
     masdim: {
@@ -481,6 +533,16 @@ export const msToTime = (duration) => {
     return `${" " + days + " days " + hours + " hours " + minutes + " minutes " + seconds + "." + milliseconds + " seconds"}`.replace(/ 0 days/gi, "").replace(/ 0 hours/gi, "").replace(/ 0 minutes/gi, "").replace(/1 hours/gi, "1 hour").replace(/1 minutes/gi, "1 minute").trim()
 }
 
+export const convertType = (string) => {
+    const replacements = {
+        "true": true,
+        "false": false
+    }
+
+    return replacements.hasOwnProperty(string) ? replacements[string] : string
+}
+
+
 export class MessageCommand {
     constructor(message) {
         this.message = message
@@ -631,8 +693,9 @@ export class MessageCommand {
         }
 
         const { quote, attachments } = quoteEmbed(quoteMessage)
+        const quoteMention = prefs[quoteMessage.author.id] !== undefined ? prefs[quoteMessage.author.id].quoteMention : false
 
-        await message.channel.send(quote)
+        await message.channel.send(quoteMention ? quoteMessage.author.toString() : "", quote)
 
         if (attachments.length > 0) {
             await message.channel.send(attachments.join(" "))
@@ -803,13 +866,13 @@ export class MessageCommand {
     async say() {
         const { message, args } = this
         if (args.length <= 0) return
-        const userCollection = await getUser(message.author.id)
+        const authorCollection = await getUser(message.author.id)
 
         // Expand on this. Have it be a function that can take something like {randommember.mention} and return that mention, rather than an object that can only take one specific string. Also {randomnumberx-y} where the user can input their own x and y and it will give a random number between the two. Just use regex to match the {} and then handle it from there.
 
         const sayReplacements = {
-            "{currency}": userCollection.currency.toLocaleString(),
-            "{genLevel}": userCollection.generatorLevel,
+            "{currency}": authorCollection.currency.toLocaleString(),
+            "{genLevel}": authorCollection.generatorLevel,
             "{randomMember}": message.guild.members.cache.filter(member => !member.user.bot).random().user.username
         }
 
@@ -826,8 +889,8 @@ export class MessageCommand {
         const { message, args } = this
 
         const desiredTopic = args.join(" ")
-        const userCollection = await getUser(message.author.id)
-        const usersChannel = client.channels.cache.get(userCollection.info.channelid)
+        const authorCollection = await getUser(message.author.id)
+        const usersChannel = client.channels.cache.get(authorCollection.info.channelid)
 
         try {
             if (!message.guild.me.hasPermission(['MANAGE_CHANNELS'])) {
@@ -853,8 +916,8 @@ export class MessageCommand {
         const { message, args } = this
 
         if (!args[0]) return
-        const userCollection = await getUser(message.author.id)
-        const usersChannel = message.guild.channels.cache.find(channel => channel.id === userCollection.info.channelid)
+        const authorCollection = await getUser(message.author.id)
+        const usersChannel = message.guild.channels.cache.find(channel => channel.id === authorCollection.info.channelid)
         const nameFinal = args[0] + usersChannel.name.substring(usersChannel.name.indexOf("-"))
 
         try {
@@ -1428,9 +1491,9 @@ export class MessageCommand {
         if (!args[2]) return
 
         const target = parseMember(args[1])
-        const userCollection = await getUser(message.author.id)
+        const authorCollection = await getUser(message.author.id)
         const targetCollection = target ? await getUser(target.user.id) : null
-        const amount = args[2].toLowerCase() === "max" ? Math.min(userCollection.currency, targetCollection.currency) : parseAmount(args[2], userCollection.currency)
+        const amount = args[2].toLowerCase() === "max" ? Math.min(authorCollection.currency, targetCollection.currency) : parseAmount(args[2], authorCollection.currency)
         console.log(amount, args[2])
 
         try {
@@ -1438,9 +1501,9 @@ export class MessageCommand {
                 throw "Invalid member."
             } else if (!amount) {
                 throw "Invalid amount."
-            } else if (!userCollection) {
+            } else if (!authorCollection) {
                 throw "Couldn't find you in the database."
-            } else if (userCollection.currency < amount) {
+            } else if (authorCollection.currency < amount) {
                 throw "You don't have enough currency"
             } else if (targetCollection.currency < amount) {
                 throw "Opponent doesn't have enough currency."
@@ -1508,14 +1571,14 @@ export class MessageCommand {
             if (button.id === "accept") {
                 if (Math.random() < 0.5) {
                     winner = message.member
-                    winnerBalance = userCollection.currency
+                    winnerBalance = authorCollection.currency
                     loser = target
                     loserBalance = targetCollection.currency
                 } else {
                     winner = target
                     winnerBalance = targetCollection.currency
                     loser = message.member
-                    loserBalance = userCollection.currency
+                    loserBalance = authorCollection.currency
                 }
 
                 await vsMessage.edit({
@@ -1566,15 +1629,15 @@ export class MessageCommand {
         const [subCmd, terCmd] = [...args]
 
         if (terCmd === "auto" || terCmd === "a") {
-            const userCollection = await getUser(message.author.id)
+            const authorCollection = await getUser(message.author.id)
 
             const {
                 dailyTime,
                 hourlyTime,
                 currency,
                 generatorLevel,
-            } = userCollection,
-            moneyInGen = userCollection.moneyInGen()
+            } = authorCollection,
+            moneyInGen = authorCollection.moneyInGen()
 
             const dailyReady = new Date() - dailyTime.getTime() > 86400000
             const hourlyReady = new Date() - hourlyTime.getTime() > 3600000
@@ -1655,15 +1718,15 @@ export class MessageCommand {
         collector.on('collect', async button => {
             await button.reply.defer()
 
-            const userCollection = await getUser(message.author.id)
+            const authorCollection = await getUser(message.author.id)
 
             const {
                 dailyTime,
                 hourlyTime,
                 currency,
                 generatorLevel,
-            } = userCollection,
-            moneyInGen = userCollection.moneyInGen()
+            } = authorCollection,
+            moneyInGen = authorCollection.moneyInGen()
 
             const dailyReady = new Date() - dailyTime.getTime() > 86400000
             const hourlyReady = new Date() - hourlyTime.getTime() > 3600000
@@ -1805,7 +1868,7 @@ export class MessageCommand {
                 response("Image", "m,image | m,i", "m,i <search>", "Searches Google for images.")
                 break
             case "macros":
-                response("Macros", "m,acro | m,", "m,acro <create|view> <macroname> m, <macroname>", "Macros allow the user to run a custom, predefined series of commands at any time.")
+                response("Macros", "m,acro | m,", "m,acro create | m,acro view <macroname> | m, <macroname>", "Macros allow the user to run a custom, predefined series of commands at any time.")
                 break
             case "quote":
                 response("Quote", "", "<messageurl> 💬 reaction", "Quotes a message, turning it into a nicely-formatted embed. Click the author's name to jump to the message.")
@@ -1859,7 +1922,7 @@ export class MessageCommand {
                 break
             case "gen":
             case "g":
-                response("Generator", "m,c gen | m,c g", "m,c gen <view/v|upgrade/u> <?level| >", "Generators create money over time. You can collect them using m,c ch.\n\nIf you wish to view information about a generator, you can do m,c gen view <level>, or leave <level> blank to default to viewing the next generator. If you want to upgrade, it's m,c gen upgrade.")
+                response("Generator", "m,c gen | m,c g", "m,c gen view <?number> | m,c gen upgrade", "Generators create money over time. You can collect them using m,c ch.\n\nIf you wish to view information about a generator, you can do m,c gen view <level>, or leave <level> blank to default to viewing the next generator. If you want to upgrade, it's m,c gen upgrade.")
                 break
             case "raremasonbot":
                 response("Rare Masonbot", "", "", "Rare Masonbots have a 1/4096 chance of appearing on any non-bot message. Are you feeling lucky?")
@@ -1892,6 +1955,11 @@ export class MessageCommand {
             case "member":
                 response("Member Input Type", "", "", "Parses a member.\n\nAccepts user id\nAccepts user mention\nFuzzy searches by username (e.g. \"mas\" will return \"Mason\")")
                 break
+            case "preferences":
+            case "prefs":
+            case "pr":
+                response("Preferences", "m,pr | m,prefs", "m,pr | m,pr <preference> | m,pr <reference> <value>", "<preference> is fuzzy searched, so it doesn't have to be exact (\"quot\" will be interpreted as \"quoteMention\").\n\nm,pr will show you a list of your preferences.\nm,pr <preference> will show you information about that preference.\nm,pr <preference> <value> will change your preference to the value you input.")
+                break
             default:
                 message.channel.send({
                     embed: {
@@ -1909,7 +1977,7 @@ export class MessageCommand {
                             },
                             {
                                 name: "Functional",
-                                value: "\`\`\`macros, quote, settopic, setcolor, setname, setemoji, help, createchannel,\`\`\`",
+                                value: "\`\`\`macros, quote, settopic, setcolor, setname, setemoji, help, createchannel, preferences\`\`\`",
                                 inline: true
                             },
                             {
@@ -1935,6 +2003,70 @@ export class MessageCommand {
                 })
         }
     }
+    async prefs() {
+        const { message, args } = this
+        const authorCollection = await getUser(message.author.id)
+        if (authorCollection.prefs === undefined) return
+
+        if (args.length <= 0) {
+            return message.channel.send({
+                embed: {
+                    title: `${message.author.username}'s preferences`,
+                    description: `\`\`\`${Object.entries(authorCollection.prefs).map(x => x[0] + ": " + x[1]).join("\n")}\`\`\``,
+                    color: info.masonbot.color
+                }
+            })
+        } else {
+            const listOfPreferences = new Fuse(Object.keys(authorCollection.prefs))
+            const targetPreference = listOfPreferences.search(args[0]).length > 0 ? listOfPreferences.search(args[0])[0].item : undefined
+            const newValue = !!args[1] ? convertType(args[1].toLowerCase()) : undefined
+            const preferenceQuery = `prefs.${targetPreference}`
+
+            const prefDescriptions = {
+                quoteMention: "Whether or not to mention (ping) you when you're quoted."
+            }
+
+            if (args.length <= 1) {
+                return message.channel.send({
+                    embed: {
+                        title: targetPreference,
+                        color: info.masonbot.color,
+                        description: "```" + prefDescriptions[targetPreference] + "```",
+                        footer: {
+                            text: `Currently set to: ${prefs[message.author.id][targetPreference]}`
+                        }
+                    }
+                })
+            }
+
+            try {
+                if (!targetPreference) {
+                    throw "That preference doesn't exist."
+                } else if (typeof(authorCollection.prefs[targetPreference]) !== typeof(newValue)) {
+                    throw `Expected type ${typeof(authorCollection.prefs[targetPreference])}, got ${typeof(newValue)}`
+                }
+            } catch (err) {
+                return message.channel.send(
+                    errorEmbed(err)
+                )
+            }
+
+            await dboUsers.collection(message.author.id).updateOne({ "info.id": message.author.id }, {
+                $set: {
+                    [preferenceQuery]: newValue
+                }
+            })
+
+            prefs[message.author.id][targetPreference] = newValue
+
+            return message.channel.send({
+                embed: {
+                    color: info.masonbot.color,
+                    title: `${targetPreference} changed to ${newValue}`
+                }
+            })
+        }
+    }
 }
 
 export class ReactionCommand {
@@ -1954,8 +2086,9 @@ export class ReactionCommand {
         const quoterChannel = message.guild.channels.cache.find(channel => channel.id === quoterCollection.info.channelid)
 
         const { quote, attachments } = quoteEmbed(message)
+        const quoteMention = prefs[message.author.id] !== undefined ? prefs[message.author.id].quoteMention : false
 
-        await quoterChannel.send(quote)
+        await quoterChannel.send(quoteMention ? message.author.toString() : "", quote)
 
         if (attachments.length > 0) {
             await quoterChannel.send(attachments.join(" "))

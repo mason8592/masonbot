@@ -13,18 +13,15 @@ const client = new Discord.Client({
     partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
 })
 const disbut = require("discord-buttons")
-import express, { response } from 'express'
-import MongoClient from 'mongodb'
-const Mongo = MongoClient.MongoClient
-const app = express()
 
 // Initialization
 import * as lib from "./lib.mjs"
+const { dboUsers, dboChannels } = lib
 const gotCurrency = new Set()
 let talkedRecently = false
 disbut(client)
 const { MessageButton: Button } = disbut
-let dboUsers, dboChannels, persistent
+let persistent
 const mostRecentCommand = {}
 
 client.once('ready', () => {
@@ -35,20 +32,9 @@ client.once('ready', () => {
     return client.users.cache.get("264590999479648268").send("Masonbot is online.")
 })
 
-Mongo.connect(process.env.MONGODB_URL, {
-    useUnifiedTopology: true
-}, function(err, database) {
-    if (err) throw err
-
-    app.listen(3000)
-    console.log("Listening on port 3000")
-    dboUsers = database.db("users")
-    dboChannels = database.db("channels")
-})
-
 // OTHER
 const prefix = "m,"
-const testing = false;
+const testing = true;
 
 client.on("message", async message => {
     if ((testing && message.author.id !== lib.info.mason.id) || message.author.bot) return
@@ -304,11 +290,15 @@ client.on("message", async message => {
         case "h":
             command.help()
             break
+        case "pr":
+        case "prefs":
+            command.prefs()
+            break
     }
 })
 
 client.on('messageReactionAdd', async (reaction, user) => {
-    if (user.bot) return
+    if ((testing && user.id !== lib.info.mason.id) || user.bot) return
 
     if (reaction.partial) {
         try {
