@@ -33,7 +33,7 @@ client.once('ready', () => {
 
 // OTHER
 const prefix = "m,"
-const testing = true;
+const testing = false;
 const cache = {}
 
 client.on("message", async message => {
