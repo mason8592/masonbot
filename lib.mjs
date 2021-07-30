@@ -139,7 +139,7 @@ export const getChannel = (channelID) => {
     })
 } // Pulls a channel from the database
 
-export const parseAmount = (amount, balance = 0) => {
+export const parseAmount = (amount, balance = 0, isMultiplier = false) => {
     let parsed = amount.toLowerCase().replace(/[,x]/g, "")
     const suffixRegex = /([\d.]+[m|k]+)|[(\d.)]+[m|k]+/g
 
@@ -173,7 +173,29 @@ export const parseAmount = (amount, balance = 0) => {
 
     parsed = typeof parsed === "string" ? parsed.replace(suffixRegex, suffixHandle) : parsed
 
-    return amount.startsWith("x") ? parseInt(balance - parsed) : parseInt(parsed)
+    parsed = amount.startsWith("x") ? parseInt(balance - parsed) : parseInt(parsed)
+
+    if (isNaN(parsed)) {
+        return {
+            amount: parsed,
+            error: "NaN",
+            message: `Invalid ${isMultiplier ? "multiplier" : "amount"}.`
+        }
+    } else if (!isMultiplier && parsed > balance) {
+        return {
+            amount: parsed,
+            error: "exceedsBalance",
+            message: `Amount exceeds balance.\n${parsed.toLocaleString()} > ${balance.toLocaleString()}`
+        }
+    } else if (isMultiplier ? parsed <= 0 : parsed < 2) {
+        return {
+            amount: parsed,
+            error: "tooLow",
+            message: `${isMultiplier ? "Multiplier" : "Amount"} of ${parsed.toLocaleString()} is too low.`
+        }
+    } else {
+        return parsed
+    }
 } // Takes a number and the user's balance, and returns an amount, taking into consideration things like "all" or [equations]
 
 export const parseMember = (search) => {
@@ -583,19 +605,13 @@ export class MessageCommand {
         const { message, args } = this
         const { currency } = await getUser(message.author.id)
         const amount = parseAmount(args[1], currency)
-        const multiplier = !!args[2] ? parseAmount(args[2], currency) : 2
+        const multiplier = !!args[2] ? parseAmount(args[2], currency, true) : 2
 
         try {
-            if (!amount) {
-                throw "Invalid amount."
-            } else if (amount < 0) {
-                throw "Negative amount not allowed."
-            } else if (!multiplier) {
-                throw "Invalid multiplier."
-            } else if (multiplier < 2) {
-                throw "Multiplier is too low."
-            } else if (amount > currency) {
-                throw "You don't have enough currency."
+            if (typeof amount === "object") {
+                throw amount.message
+            } else if (typeof multiplier === "object") {
+                throw multiplier.message
             }
         } catch (err) {
             return message.channel.send(
@@ -636,10 +652,8 @@ export class MessageCommand {
         try {
             if (!target || !targetCollection || !targetCollection.currency) {
                 throw "Invalid target."
-            } else if (isNaN(amount) || amount < 0) {
-                throw "Invalid amount."
-            } else if (amount > authorCollection.currency) {
-                throw "You don't have enough money."
+            } else if (typeof amount === "object") {
+                throw amount.message
             }
         } catch (err) {
             return message.channel.send(
@@ -820,6 +834,10 @@ export class MessageCommand {
         const target = parseMember(args[1])
         const targetCollection = await getUser(target.user.id)
         const amount = parseAmount(args[2], targetCollection.currency)
+
+        if (typeof amount === "object") {
+            return message.channel.send(amount.message)
+        }
 
         await dboUsers.collection(target.user.id).updateOne({}, {
             $set: {
@@ -1416,14 +1434,12 @@ export class MessageCommand {
         try {
             if (!target || !targetCollection) {
                 throw "Invalid member."
-            } else if (!amount) {
-                throw "Invalid amount."
+            } else if (typeof amount === "object") {
+                throw amount.message
             } else if (!authorCollection) {
                 throw "Couldn't find you in the database."
-            } else if (authorCollection.currency < amount) {
-                throw "You don't have enough currency"
             } else if (targetCollection.currency < amount) {
-                throw "Opponent doesn't have enough currency."
+                throw `Amount exceeds target's balance.\n${amount.toLocaleString()} > ${targetCollection.currency.toLocaleString()}`
             } else if (target.user.id === message.author.id) {
                 throw "You cannot versus yourself."
             }
