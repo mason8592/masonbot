@@ -33,11 +33,12 @@ const youtube = new YouTube(process.env.YOUTUBE_APIKEY)
 doc.useApiKey(process.env.GOOGLE_SPREADSHEETS_APIKEY)
 const covers = albumcover(process.env.LASTFM_APIKEY)
 let docLoaded = false
-const prefs = {}
+const hasMacroInProgress = new Set()
+export const prefs = {}
 
 export const refreshPrefs = () => {
     dboUsers.listCollections().toArray(function(err, collections) {
-        if (err) console.log(err);
+        if (err) console.log(err)
 
         collections.forEach(async collection => {
             getUser(collection.name).then(user => {
@@ -47,11 +48,13 @@ export const refreshPrefs = () => {
             })
         })
     })
+
+    return prefs
 }
 
 export const addToAll = async (addition, value) => {
     await dboUsers.listCollections().toArray(function(err, collections) {
-        if (err) console.log(err);
+        if (err) console.error(err)
 
         collections.forEach(collection => {
             getUser(collection.name).then(async user => {
@@ -60,7 +63,7 @@ export const addToAll = async (addition, value) => {
 
                 dboUsers.collection(collection.name).updateOne({ "info.id": collection.name }, {
                     $set: {
-                        [addition]: value
+                        [addition]: convertType(value)
                     }
                 })
             })
@@ -559,7 +562,9 @@ export const msToTime = (duration) => {
 export const convertType = (string) => {
     const replacements = {
         "true": true,
-        "false": false
+        "false": false,
+        "[]": new Array(),
+        "{}": new Object()
     }
 
     return replacements.hasOwnProperty(string) ? replacements[string] : string
@@ -637,8 +642,8 @@ export class MessageCommand {
             }
         }).then(() => {
             changeBalance(message.author.id, finalAmount)
-        }).catch(e => {
-            console.log(e)
+        }).catch(err => {
+            console.log(err)
         })
     }
     async pay() {
@@ -700,7 +705,6 @@ export class MessageCommand {
         try {
             quoteMessage = await message.guild.channels.cache.get(vals[1]).messages.fetch(vals[2])
         } catch (err) {
-            console.log(err)
             return message.channel.send(
                 errorEmbed("Invalid link.")
             )
@@ -721,8 +725,6 @@ export class MessageCommand {
         const { message, args } = this
         const member = parseMember(args[0])
         const command = message.content.split(" ").slice(2).join(" ")
-
-        console.log(member)
 
         if (message.author.id === info.mason.id) {
             sudo(message, member, command)
@@ -804,22 +806,6 @@ export class MessageCommand {
                     }
                 })
 
-                getChannel("845155667602178126").then(riftChannel => {
-                    if (timeInSeconds < riftChannel.fastest.time) {
-                        console.log(timeInSeconds, riftChannel.fastest.time)
-                        dboChannels.collection("845155667602178126").updateMany({}, {
-                            $set: {
-                                "fastest.user": collectedUser,
-                                "fastest.time": timeInSeconds,
-                                "fastest.date": new Date()
-                            }
-                        }, {
-                            multi: true
-                        }).then(() => {
-                            client.channels.cache.get("845155667602178126").setTopic(`A log of all discovered rifts.\n\nFastest rift: ${timeInSeconds} seconds by ${winMember.user.username} (${new Date().toLocaleDateString("en-US")})`)
-                        })
-                    }
-                })
                 clearTimeout(deleteRift)
                 setTimeout(() => {
                     riftMessage.delete()
@@ -1116,7 +1102,7 @@ export class MessageCommand {
 
         if (images.length <= 0) {
             return message.channel.send(
-                errorEmbed("No results found.")
+                errorEmbed(`No results found for **${args.join(" ")}**`)
             )
         }
 
@@ -1429,7 +1415,6 @@ export class MessageCommand {
         const authorCollection = await getUser(message.author.id)
         const targetCollection = target ? await getUser(target.user.id) : null
         const amount = args[2].toLowerCase() === "max" ? Math.min(authorCollection.currency, targetCollection.currency) : parseAmount(args[2], authorCollection.currency)
-        console.log(amount, args[2])
 
         try {
             if (!target || !targetCollection) {
@@ -1731,7 +1716,7 @@ export class MessageCommand {
             const nextLevel = authorCollection.generatorLevel + 1
 
             if (authorCollection.currency < genInfo(nextLevel).cost) {
-                return message.channel.send(errorEmbed(`You need ${(genInfo(nextLevel).cost - authorCollection.currency).toLocaleString()} more currency to afford a generator upgrade.`))
+                return message.channel.send(errorEmbed(`You need **${(genInfo(nextLevel).cost - authorCollection.currency).toLocaleString()}** more currency to afford a generator upgrade.`))
             }
 
             await dboUsers.collection(message.author.id).updateOne({}, {
@@ -1801,7 +1786,9 @@ export class MessageCommand {
                 response("Image", "m,image | m,i", "m,i <search>", "Searches Google for images.")
                 break
             case "macros":
-                response("Macros", "m,acro | m,", "m,acro create | m,acro view <macroname> | m, <macroname>", "Macros allow the user to run a custom, predefined series of commands at any time.")
+            case "macro":
+            case "x":
+                response("Macros", "m,x", "m,x create <name> <commands> | m,x view <name> <?member> | m,x delete <name> | m,x list <?member>", "Macros allow the user to run a custom, predefined series of commands at any time.\n\nm,x create takes commands separated by newlines:\n\nm,x create example\nm,say Example\nm,c bet 1\n...wait 3000\nm,say {{1}}\n\nThere is a special, macro-exclusive command called \"...wait\" that waits for a certain number of milliseconds before executing the next command.\n\nCommands can have arguments within {{double curly brackets}}. These arguments are provided when using the command, i.e. !example Cool\n\nMacros are called through your own individual macro prefix, which you can change using m,prefs")
                 break
             case "quote":
                 response("Quote", "", "<messageurl> 💬 reaction", "Quotes a message, turning it into a nicely-formatted embed. Click the author's name to jump to the message.")
@@ -1953,7 +1940,8 @@ export class MessageCommand {
             const preferenceQuery = `prefs.${targetPreference}`
 
             const prefDescriptions = {
-                quoteMention: "Whether or not to mention (ping) you when you're quoted."
+                quoteMention: "Whether or not to mention (ping) you when you're quoted.",
+                macroPrefix: "The prefix used to execute macros."
             }
 
             if (args.length <= 1) {
@@ -1981,6 +1969,10 @@ export class MessageCommand {
                 )
             }
 
+            if (targetPreference === "macroPrefix" && [prefix, "m,"].includes(newValue)) {
+                return message.channel.send(errorEmbed("Can't set macro prefix to bot's prefix."))
+            }
+
             await dboUsers.collection(message.author.id).updateOne({ "info.id": message.author.id }, {
                 $set: {
                     [preferenceQuery]: newValue
@@ -1995,6 +1987,221 @@ export class MessageCommand {
                     title: `${targetPreference} changed to ${newValue}`
                 }
             })
+        }
+    }
+    async macro() {
+        const { message, args } = this
+        const authorCollection = await getUser(message.author.id)
+
+        if (message.content.startsWith(prefs[message.author.id].macroPrefix)) {
+            if (message.isSudo) return message.channel.send(errorEmbed("Can't run macro within another sudo instance."))
+            const macroName = message.content.slice(prefs[message.author.id].macroPrefix.length).split(" ")[0]
+            if (!macroName) return
+            if ((await dboUsers.collection(message.author.id).findOne({[`macros.${macroName}`]: { $exists: true } })) === null) return message.channel.send(errorEmbed(`Couldn't find a macro named **${macroName}**.`))
+
+            const defaultDelay = 1000
+            let random = Math.random()
+            const commands = [...authorCollection.macros[macroName].commands, random]
+            if (commands.length > 10 + 1) return message.channel.send(errorEmbed("No more than 10 commands allowed per macro."))
+            var promise = Promise.resolve()
+
+            if (hasMacroInProgress.has(message.author.id)) {
+                return message.channel.send(errorEmbed("You already have a macro in progress."))
+            }
+
+            hasMacroInProgress.add(message.author.id)
+
+            const argumentHandle = (string) => {
+                if (typeof string !== "string") return string
+
+                try {
+                    const argReplace = (match, offset, string) => {
+                        const argument = args[parseInt(match.replace(/\D+/g, "")) - 1]
+                        if (argument === undefined) {
+                            hasMacroInProgress.delete(message.author.id)
+                            throw parseInt(match.replace(/\D+/g, ""))
+                        }
+                        return argument
+                    }
+    
+                    return string.replace(/{{\d+}}/g, argReplace)    
+                } catch (err) {
+                    return new Error(err)
+                }
+            }
+
+            for (let command of commands) {
+                command = argumentHandle(command)
+
+                if (command.message) {
+                    message.channel.send(errorEmbed(`Expected **${/{{\d+}}/g.test(commands.join("")) ? commands.join("").match(/{{\d+}}/g).map(arg => arg.replace(/\D+/g, "")).sort((a, b) => a > b ? -1 : 1)[0] : false}** arguments, got **${args.length}**.`))
+                    break
+                }
+
+                promise = promise.then(() => {
+                    if (command === random) {                
+                        hasMacroInProgress.delete(message.author.id)
+
+                        dboUsers.collection(message.author.id).updateOne({ "info.id": message.author.id }, {
+                            $inc: {
+                                [`macros.${macroName}.uses`]: 1
+                            }
+                        })
+                    } else {
+                        sudo(message, message.member, command)
+                
+                        let delay = command.startsWith("...wait") ? parseInt(command.split(" ")[1]) - defaultDelay : defaultDelay
+
+                        if (delay < defaultDelay) {
+                            delay = defaultDelay
+                        }
+
+                        if (commands.indexOf(command) > commands.length - 2) {
+                            delay = 0
+                        }
+
+                        return new Promise(function (resolve) {
+                            setTimeout(resolve, delay)
+                        })
+                    }
+                })
+            }
+        } else {
+            const subCmd = args[0].toLowerCase()
+            if (!subCmd) return
+
+            if (subCmd === "create") {
+                const newlineSplit = message.content.split(/(\r\n|\r|\n)/g)
+                const macroName = newlineSplit[0].split(" ")[2]
+                if ((await dboUsers.collection(message.author.id).findOne({[`macros.${macroName}`]: { $exists: true } })) !== null) return message.channel.send(errorEmbed(`The macro **${macroName}** already exists.`))
+                const commands = newlineSplit.slice(1).filter(string => string !== "\n")
+
+                if (commands.map(command => command.startsWith(prefix) || command.startsWith("...")).includes(false)) return message.channel.send(errorEmbed(`One or more commands were invalid. Commands must start with ${prefix}`))
+
+                await dboUsers.collection(message.author.id).updateOne({ "info.id": message.author.id }, {
+                    $set: {
+                        [`macros.${macroName.toLowerCase()}`]: {
+                            commands: commands,
+                            created: new Date(),
+                            uses: 0
+                        }
+                    }
+                })
+
+                return message.channel.send({
+                    embed: {
+                        title: `Created macro "${macroName}"`,
+                        color: info.masonbot.color,
+                        description: `\`Commands:\`\n\`\`\`${commands.join('\n')}\`\`\``
+                    }
+                })
+            } else if (subCmd === "view") {
+                const macroName = args[1].toLowerCase()
+                const targetMember = parseMember(args[2]) || message.member
+                if ((await dboUsers.collection(targetMember.user.id).findOne({[`macros.${macroName}`]: { $exists: true } })) === null) return message.channel.send(errorEmbed(`Couldn't find a macro named **${macroName}** ${targetMember.user.id !== message.author.id ? `from **${targetMember.user.username}**` : ""}.`))
+                const targetCollection = await getUser(targetMember.user.id)
+                const macro = targetCollection.macros[macroName]
+
+                return message.channel.send({
+                    embed: {
+                        color: info.masonbot.color,
+                        title: `Viewing macro "${macroName}"`,
+                        description: `\`\`\`${macro.commands.join("\n")}\`\`\`\n\`Created ${macro.created.toLocaleString()}\``,
+                        footer: {
+                            text: `This macro has been used ${macro.uses.toLocaleString()} times`
+                        }
+                    }
+                })
+            } else if (subCmd === "edit") {
+                const newlineSplit = message.content.split(/(\r\n|\r|\n)/g)
+                const macroName = newlineSplit[0].split(" ")[2]
+                if ((await dboUsers.collection(message.author.id).findOne({[`macros.${macroName}`]: { $exists: true } })) === null) return message.channel.send(errorEmbed(`Couldn't find a macro named **${macroName}**.`))
+                const newCommands = newlineSplit.slice(1).filter(string => string !== "\n")
+                const macro = authorCollection.macros[macroName]
+
+                if (newCommands.map(command => command.startsWith(prefix) || command.startsWith("...")).includes(false)) return message.channel.send(errorEmbed(`One or more commands were invalid. Commands must start with ${prefix}`))
+
+                await dboUsers.collection(message.author.id).updateOne({ "info.id": message.author.id }, {
+                    $set: {
+                        [`macros.${macroName.toLowerCase()}.commands`]: newCommands
+                    }
+                })
+
+                return message.channel.send({
+                    embed: {
+                        title: `Edited macro "${macroName}"`,
+                        color: info.masonbot.color,
+                        description: `\`Changed commands from:\`\n\`\`\`${macro.commands.join("\n")}\`\`\`\`to:\`\n\`\`\`${newCommands.join("\n")}\`\`\``
+                    }
+                })
+            } else if (subCmd === "delete") {
+                const macroName = args[1].toLowerCase()
+                if (!macroName) return
+                if ((await dboUsers.collection(message.author.id).findOne({[`macros.${macroName}`]: { $exists: true } })) === null) return message.channel.send(errorEmbed(`Couldn't find a macro named **${macroName}**.`))
+
+                const confirmationMessage = await message.channel.send({
+                    embed: {
+                        color: info.masonbot.color,
+                        title: `Delete "${macroName}"?`,
+                        description: `\`Commands:\`\n\`\`\`${authorCollection.macros[macroName].commands.join('\n')}\`\`\``
+                    },
+                    buttons: [
+                        new Button({
+                            style: "green",
+                            label: "Yes",
+                            id: "yes"
+                        }),
+                        new Button({
+                            style: "red",
+                            label: "No",
+                            id: "no"
+                        })
+                    ]
+                })
+
+                const filter = (button) => button.clicker.user.id === message.author.id
+                const collector = await confirmationMessage.createButtonCollector(filter, {
+                    max: 1
+                })
+    
+                const confirmationTimeout = setTimeout(() => {
+                    confirmationMessage.delete()
+                }, 60000)
+
+                collector.on('collect', async button => {
+                    await button.reply.defer()
+                    clearTimeout(confirmationTimeout)
+
+                    if (button.id === "yes") {
+                        await dboUsers.collection(message.author.id).updateOne({ "info.id": message.author.id }, { 
+                            $unset : {
+                                [`macros.${macroName}`] : 1
+                            } 
+                        })
+
+                        return confirmationMessage.edit({
+                            embed: {
+                                color: info.masonbot.color,
+                                title: `Deleted macro "${macroName}"`
+                            },
+                            buttons: null
+                        })
+                    } else {
+                        confirmationMessage.delete()
+                    }
+                })
+            } else if (subCmd === "list") {
+                const targetMember = parseMember(args[1]) || message.member
+                const targetCollection = await getUser(targetMember.user.id)
+
+                return message.channel.send({
+                    embed: {
+                        color: info.masonbot.color,
+                        title: `${targetMember.user.username}'s macros\nby number of uses`,
+                        description: targetCollection.macros.length <= 0 ? "`User has no macros`" : `\`\`\`${Object.keys(targetCollection.macros).sort((a, b) => targetCollection.macros[a].uses > targetCollection.macros[b].uses ? -1 : 1).map(key => `(${targetCollection.macros[key].uses}) ${key}`).join("\n")}\`\`\``
+                    }
+                })
+            }
         }
     }
 }

@@ -15,7 +15,6 @@
 
 // Initialization
 import * as lib from "./lib.mjs"
-const { dboUsers, dboChannels } = lib
 const gotCurrency = new Set()
 let talkedRecently = false
 disbut(client)
@@ -36,20 +35,20 @@ const prefix = "m,"
 const testing = false;
 const cache = {}
 
-client.on("message", async message => {
+client. on("message", async message => {
     if ((testing && message.author.id !== lib.info.mason.id) || message.author.bot) return
 
     if (message.content.toLowerCase().startsWith(prefix)) {
         mostRecentCommand[message.author.id] = message.content
     }
 
-    if (message.content === ",m") {
+    if (message.content === ",m" && !message.isSudo) {
         if (!mostRecentCommand[message.author.id]) return message.channel.send(lib.errorEmbed("You haven't sent a command yet."))
 
         return lib.sudo(message, message.member, mostRecentCommand[message.author.id])
     }
 
-    if (Math.floor(Math.random() * 4096) === 1) {
+    if (Math.random() < 1/4096) {
         await message.react("740160198689292309")
         await message.channel.send({
             embed: {
@@ -185,6 +184,10 @@ client.on("message", async message => {
             })
     }
 
+    if (message.content.startsWith(lib.prefs[message.author.id].macroPrefix)) {
+        command.macro()
+    }
+
     // Main command handler
 
     if (!message.content.toLowerCase().startsWith(prefix)) return
@@ -223,6 +226,9 @@ client.on("message", async message => {
                 case "page":
                 case false:
                     command.page()
+                    break
+                default:
+                    return message.channel.send(lib.errorEmbed(`**${message.content}** was not recognized as a command.`))
             }
             break
         case "eval":
@@ -284,6 +290,12 @@ client.on("message", async message => {
         case "prefs":
             command.prefs()
             break
+        case "x":
+            command.macro()
+            break
+        default:
+            return message.channel.send(lib.errorEmbed(`**${message.content}** was not recognized as a command.`))
+
     }
 })
 
@@ -359,4 +371,4 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 client.login()
 
-export { client, prefix, Button, ActionRow, dboUsers, dboChannels, mostRecentCommand }
+export { client, prefix, Button, ActionRow, mostRecentCommand }
