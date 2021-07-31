@@ -26,7 +26,7 @@ const button = (sound) => {
         label: sound,
         id: sound
     })
-} 
+}
 
 client.on("message", async message => {
     if (message.content === "soundboard") {

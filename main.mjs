@@ -184,7 +184,7 @@ client. on("message", async message => {
             })
     }
 
-    if (message.content.startsWith(lib.prefs[message.author.id].macroPrefix)) {
+    if (message.content.toLowerCase().startsWith(lib.prefs[message.author.id].macroPrefix.toLowerCase())) {
         command.macro()
     }
 
