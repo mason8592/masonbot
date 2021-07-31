@@ -2017,7 +2017,9 @@ export class MessageCommand {
 
 			const argumentHandle = (string) => {
 				if (typeof string !== "string") return string
-                let maxArgs = commands.join("").match(/{{\w+}}/g).map(arg => arg.replace(/\D+/g, "")).sort((a, b) => a > b ? -1 : 1)[0]
+                const matches = commands.join("").match(/{{\w+}}/g)
+                if (matches === null) return
+                let maxArgs = matches.map(arg => arg.replace(/\D+/g, "")).sort((a, b) => a > b ? -1 : 1)[0]
 
 				try {
 					const argReplace = (match, offset, string) => {
@@ -2168,6 +2170,7 @@ export class MessageCommand {
 					})
 				}
 			} else if (subCmd === "view") {
+                if (args.length < 2) return
 				const macroName = args[1].toLowerCase()
 				const targetMember = parseMember(args[2]) || message.member
 				if (!macroName) return
