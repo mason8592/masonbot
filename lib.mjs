@@ -1938,6 +1938,7 @@ export class MessageCommand {
 		} else {
 			const listOfPreferences = new Fuse(Object.keys(authorCollection.prefs))
 			const targetPreference = listOfPreferences.search(args[0]).length > 0 ? listOfPreferences.search(args[0])[0].item : undefined
+            if (!prefs[message.author.id].hasOwnProperty(targetPreference)) return message.channel.send(errorEmbed(`Couldn't find that preference.`))
 			const newValue = !!args[1] ? convertType(args[1].toLowerCase()) : undefined
 			const preferenceQuery = `prefs.${targetPreference}`
 
