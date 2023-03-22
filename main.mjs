@@ -1,17 +1,17 @@
 // Imports
-    import { createRequire } from "module"
-    const require = createRequire(
-        import.meta.url
-    )
-    import dotenv from "dotenv"
-    dotenv.config()
-    import Discord, { MessageAttachment } from 'discord.js'
-    const client = new Discord.Client({
-        fetchAllMembers: true,
-        sync: true,
-        partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
-    })
-    const disbut = require("discord-buttons")
+import { createRequire } from "module"
+const require = createRequire(
+    import.meta.url
+)
+import dotenv from "dotenv"
+dotenv.config()
+import Discord, { MessageAttachment } from 'discord.js'
+const client = new Discord.Client({
+    fetchAllMembers: true,
+    sync: true,
+    partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
+})
+const disbut = require("discord-buttons")
 
 // Initialization
 import * as lib from "./lib.mjs"

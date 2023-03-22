@@ -14,51 +14,39 @@ const disbut = require("discord-buttons")
 disbut(client)
 const { MessageButton: Button, MessageActionRow: ActionRow} = disbut
 import * as math from "mathjs"
+import e from "express"
 const path = require("path")
 
 client.once("ready", () => {
     console.log("Ready")
 })
 
-const button = (sound) => {
-    return new Button({
-        style: "grey",
-        label: sound,
-        id: sound
-    })
-}
+
+
+
+let monkeys = ["Dart Monkey", "Boomerang Monkey", "Bomb Shooter", "Tack Shooter", "Ice Monkey", "Glue Gunner", "Sniper Monkey", "Monkey Sub", "Monkey Buccaneer", "Monkey Ace", "Heli Pilot", "Mortar Monkey", "Dartling Gunner", "Wizard Monkey", "Super Monkey", "Ninja Monkey", "Alchemist", "Druid", "Banana Farm", "Spike Factory", "Monkey Village", "Engineer Monkey"]
+
+
+
+
+
 
 client.on("message", async message => {
-    if (message.content === "soundboard") {
-        message.member.voice.channel.join().then(async connection => {
-            let row = new ActionRow()
-            .addComponents(button("vineboom"))
-            .addComponents(button("steelsting"))
-            .addComponents(button("shutup"))
-            .addComponents(button("exclamation"))
-
-            let row2 = new ActionRow()
-            .addComponents(button("tada"))
-
-            const soundBoard = await message.channel.send("epic soundboard", {components: [row, row2]})
-
-            const filter = (button) => true
-            const collector = await soundBoard.createButtonCollector(filter, {})
-
-            collector.on('collect', async button => {
-                await button.reply.defer()
-
-                const doIt = () => {
-                    let dispatcher = connection.play(`C:/masonbotjs/sounds/${button.id}.mp3`);
-
-                    dispatcher.on("finish", () => {
-                        doIt()
-                    })    
-                }
-
-                doIt()
-            })
-        }).catch(console.error);
+    const prefix = "m,"
+    const contentArray = message.content.trim().slice(prefix.length).split(/ +/)
+    const cmd = contentArray[0].toLowerCase()
+    const args = message.content.trim().slice(prefix.length).split(/ +/).slice(1)
+    const subCmd = args[0] ? args[0].toLowerCase() : false
+    const terCmd = args[1] ? args[1].toLowerCase() : false
+    
+    if (message.content.startsWith("m,")) {
+        if (cmd === "btd") {
+            if (subCmd === "random") {
+                message.channel.send({embed: {
+                    title: monkeys[Math.floor(Math.random() * monkeys.length)]
+                }})
+            }
+        }            
     }
 })
 
